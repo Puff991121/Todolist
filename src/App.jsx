@@ -61,6 +61,12 @@ const App = () => {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to save task:", error);
+      if (error.response && error.response.data) {
+        console.error("Backend Error Detail:", error.response.data);
+        alert(`保存失败: ${error.response.data.message || '未知错误'}\n${error.response.data.detail || ''}`);
+      } else {
+        alert("保存失败，请检查网络连接或服务器状态");
+      }
     }
   };
 

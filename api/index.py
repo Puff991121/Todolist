@@ -1,16 +1,37 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import date
+import os
+import traceback
 
 import crud, models, schemas
 from database import engine, get_db
 
 # 自动创建表（如果不存在）
-models.Base.metadata.create_all(bind=engine)
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Database creation failed: {e}")
 
 app = FastAPI(title="Todo List API")
+
+# 全局异常处理器，用于捕捉 Vercel 上的 500 错误并暴露细节
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    error_details = traceback.format_exc()
+    print(f"Unhandled Exception: {error_details}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": "500",
+            "message": "Internal Server Error",
+            "detail": str(exc),
+            "traceback": error_details if os.getenv("VERCEL") != "1" else "See logs for details"
+        }
+    )
 
 # 配置 CORS
 app.add_middleware(

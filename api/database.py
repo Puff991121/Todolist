@@ -27,7 +27,21 @@ else:
     # 本地开发默认使用 MySQL
     SQLALCHEMY_DATABASE_URL = f"mysql+mysqlconnector://{_user}:{_password}@{_host}:{_port}/{_name}"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+from sqlalchemy.pool import NullPool
+
+# 根据环境判断是否使用 NullPool
+# Vercel 环境下通常定义了 VERCEL 环境变量
+is_vercel = os.getenv("VERCEL") == "1"
+
+engine_args = {
+    "pool_pre_ping": True
+}
+
+if is_vercel:
+    # Serverless 环境下建议不使用连接池，直接使用 NullPool
+    engine_args["poolclass"] = NullPool
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
